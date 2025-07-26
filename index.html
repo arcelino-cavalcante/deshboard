@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Freelancer Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS RESET & BASIC SETUP --- */
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --border-color: #333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --neon-green: #39ff14;
+            --neon-blue: #00c2ff;
+            --neon-purple: #a855f7;
+            --neon-orange: #ff7f50;
+            --status-active: var(--neon-green);
+            --status-paused: var(--neon-orange);
+            --status-cancelled: #ff4d4d;
+            --status-pending: var(--neon-orange);
+            --status-paid: var(--neon-green);
+            --shadow-color: rgba(0, 255, 13, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- UTILITY CLASSES --- */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        .rounded-lg { border-radius: 0.75rem; }
+        .shadow-neon { box-shadow: 0 4px 15px var(--shadow-color); }
+        .text-neon-green { color: var(--neon-green); }
+        .mt-6 { margin-top: 2.5rem; }
+        .mb-6 { margin-bottom: 2.5rem; }
+
+        /* --- LAYOUT --- */
+        #login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            gap: 1.5rem;
+            padding: 2rem;
+        }
+        #login-form {
+            width: 100%;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #app-wrapper {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            padding: 2rem 1.25rem;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+        }
+
+        #main-content {
+            flex-grow: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        /* --- TOP BAR (SEARCH + NOTIFICATIONS) --- */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        #notification-wrapper {
+            position: relative;
+            z-index: 150;
+        }
+        #notification-bell {
+            cursor: pointer;
+            position: relative;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+        #notification-bell:hover {
+            color: var(--text-primary);
+        }
+        #notification-count {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background-color: var(--status-cancelled);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #notification-panel {
+            position: absolute;
+            top: calc(100% + 1rem);
+            right: 0;
+            width: 350px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            max-height: 400px;
+            overflow-y: auto;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        #notification-panel.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item p {
+            font-size: 0.9rem;
+        }
+        .notification-item .due-date {
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .due-date.overdue {
+            color: var(--status-cancelled);
+        }
+        .due-date.soon {
+            color: var(--neon-orange);
+        }
+
+        /* --- GLOBAL SEARCH --- */
+        #global-search-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+        #global-search-input {
+            width: 100%;
+            padding-left: 2.5rem; /* Space for icon */
+        }
+        #global-search-wrapper svg {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        #global-search-results {
+            position: absolute;
+            width: 100%;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 0.5rem 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .search-result-item {
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .search-result-item .type-badge {
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            margin-left: 0.5rem;
+            color: var(--bg-dark);
+        }
+        .type-badge.client { background-color: var(--neon-green); }
+        .type-badge.project { background-color: var(--neon-blue); }
+        .type-badge.task { background-color: var(--neon-purple); }
+
+
+        /* --- COMPONENTS --- */
+        .btn {
+            padding: 0.8rem 1.6rem;
+            border: 1px solid var(--neon-green);
+            background-color: transparent;
+            color: var(--neon-green);
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background-color: var(--neon-green);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .btn-primary {
+             border-color: var(--neon-blue);
+             color: var(--neon-blue);
+        }
+        .btn-primary:hover {
+            background-color: var(--neon-blue);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+        
+        .btn-danger {
+            border-color: var(--status-cancelled);
+            color: var(--status-cancelled);
+        }
+        .btn-danger:hover {
+            background-color: var(--status-cancelled);
+            color: var(--text-primary);
+            box-shadow: 0 0 20px var(--status-cancelled);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1.25rem;
+            border-radius: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+        .nav-link.active {
+            background-color: var(--neon-green);
+            color: var(--bg-dark);
+            font-weight: 700;
+        }
+        .nav-link.active svg {
+            stroke: var(--bg-dark);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+            padding: 1.5rem;
+        }
+        .card:hover {
+            border-color: var(--neon-green);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .page-header {
+            margin-bottom: 2.5rem;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+        textarea {
+             width: 100%;
+            padding: 0.85rem;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            min-height: 80px;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--neon-green);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            white-space: nowrap;
+        }
+
+        /* --- MODAL --- */
+        #modal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 1rem;
+        }
+        #modal-container.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        #modal-content {
+            background-color: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 600px;
+            border: 1px solid var(--border-color);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh; /* Limita a altura do modal */
+        }
+        #modal-container.show #modal-content {
+            transform: scale(1);
+        }
+        #modal-body {
+            overflow-y: auto; /* Habilita a rolagem APENAS no corpo do modal */
+            padding-right: 1rem; /* Espaço para a barra de rolagem */
+            margin-right: -1rem;
+        }
+        #modal-body .flex-col {
+            gap: 1.25rem;
+        }
+        #modal-footer {
+            margin-top: 2rem; /* Espaçamento entre o form e os botões */
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* --- TABLE --- */
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        th {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            background-color: rgba(0,0,0,0.1);
+        }
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        /* --- TOAST NOTIFICATIONS --- */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            border-left: 5px solid;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateX(100%);
+            animation: slideIn 0.3s forwards, fadeOut 0.5s 3.5s forwards;
+        }
+
+        .toast.success {
+            border-color: var(--neon-green);
+        }
+
+        .toast.error {
+            border-color: var(--status-cancelled);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+        
+        /* --- ANIMATIONS & TRANSITIONS --- */
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-fade-in {
+            animation: fadeInPage 0.4s ease-out forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .animated-card {
+            /* Define a animação mas não a inicia. O JS fará isso com a classe. */
+            animation: cardFadeIn 0.5s ease-out forwards;
+            opacity: 0; /* Começa invisível para a animação funcionar */
+        }
+
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            #app-wrapper {
+                flex-direction: column;
+            }
+            #sidebar {
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 0.5rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .nav-link span {
+                display: none;
+            }
+            .nav-link {
+                justify-content: center;
+                padding: 0.75rem;
+            }
+            #main-content {
+                padding: 1.5rem;
+            }
+            .top-bar {
+                flex-direction: column-reverse;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            #notification-wrapper {
+                align-self: flex-end;
+            }
+            .page-header h1 {
+                font-size: 1.5rem;
+            }
+            /* Melhora responsividade de cabeçalhos e filtros */
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .page .flex.gap-4 {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .form-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE LOGIN INICIAL -->
+    <div id="login-screen">
+        <h1 class="text-2xl font-bold text-neon-green">Neon Freelancer Dashboard</h1>
+        <div id="login-form">
+            <input type="email" id="email-input" placeholder="Seu e-mail" required>
+            <input type="password" id="password-input" placeholder="Sua senha" required>
+            <button id="login-btn" class="btn">Entrar</button>
+        </div>
+    </div>
+
+    <!-- ESTRUTURA PRINCIPAL DO APP -->
+    <div id="app-wrapper" class="hidden">
+        <!-- BARRA LATERAL DE NAVEGAÇÃO -->
+        <aside id="sidebar">
+            <div class="flex flex-col gap-4 flex-grow">
+                <a href="#dashboard" class="nav-link active">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#clientes" class="nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Clientes</span>
+                </a>
+                <a href="#projetos" class="nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    <span>Projetos</span>
+                </a>
+                <a href="#financeiro" class="nav-link">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="1" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span>Financeiro</span>
+                </a>
+                <a href="#tarefas" class="nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>Tarefas</span>
+                </a>
+            </div>
+            <div>
+                <a href="#" id="logout-btn" class="nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Sair</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main id="main-content">
+            <div class="top-bar">
+                <!-- BUSCA GLOBAL -->
+                <div id="global-search-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="global-search-input" placeholder="Buscar em clientes, projetos, tarefas...">
+                    <div id="global-search-results" class="hidden"></div>
+                </div>
+                <!-- NOTIFICATION BELL -->
+                <div id="notification-wrapper">
+                    <div id="notification-bell">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        <div id="notification-count" class="hidden">0</div>
+                    </div>
+                    <div id="notification-panel">
+                        <!-- Notification items will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA: DASHBOARD -->
+            <div id="page-dashboard" class="page">
+                <div class="page-header">
+                    <h1 class="text-2xl font-bold">Dashboard</h1>
+                    <p class="text-secondary">Visão geral do seu negócio.</p>
+                </div>
+                <div class="grid-3 gap-6">
+                    <div class="card p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-secondary">Clientes Ativos</p>
+                            <p id="db-active-clients" class="text-2xl font-bold">0</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--neon-green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
+                     <div class="card p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-secondary">Projetos em Andamento</p>
+                            <p id="db-active-projects" class="text-2xl font-bold">0</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--neon-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    </div>
+                     <div class="card p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-secondary">Cobranças Pendentes</p>
+                            <p id="db-pending-payments" class="text-2xl font-bold">R$ 0,00</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--neon-orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="1" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                </div>
+                <div class="card p-6 mt-6">
+                    <h2 class="text-xl font-semibold mb-4">Recebimentos por Mês (Últimos 6 meses)</h2>
+                    <div id="finance-chart-container" style="height: 250px;">
+                        <!-- Gráfico será renderizado aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA: CLIENTES -->
+            <div id="page-clientes" class="page hidden">
+                <div class="page-header flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold">Clientes</h1>
+                        <p class="text-secondary">Gerencie seus clientes e contratos.</p>
+                    </div>
+                    <button id="add-client-btn" class="btn btn-primary">Novo Cliente</button>
+                </div>
+                <div class="flex gap-4 mb-6">
+                    <input type="text" id="search-client" placeholder="Buscar cliente nesta página..." class="flex-grow">
+                    <select id="filter-client-status">
+                        <option value="all">Todos os Status</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="pausado">Pausado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                    <select id="sort-clients">
+                        <option value="name-asc">Ordenar por Nome (A-Z)</option>
+                        <option value="date-desc">Mais Recentes</option>
+                    </select>
+                </div>
+                <div id="client-list" class="grid-3 gap-6">
+                    <!-- Cards de clientes serão inseridos aqui -->
+                </div>
+            </div>
+
+            <!-- PÁGINA: PROJETOS -->
+            <div id="page-projetos" class="page hidden">
+                 <div class="page-header flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold">Projetos</h1>
+                        <p class="text-secondary">Visualize todos os projetos.</p>
+                    </div>
+                     <button id="add-project-btn" class="btn btn-primary">Novo Projeto</button>
+                </div>
+                 <div class="flex gap-4 mb-6">
+                    <select id="sort-projects" class="w-full">
+                        <option value="end-date-asc">Ordenar por Entrega</option>
+                        <option value="name-asc">Ordenar por Nome (A-Z)</option>
+                        <option value="value-desc">Maior Valor</option>
+                    </select>
+                </div>
+                <div id="project-list" class="flex flex-col gap-4">
+                    <!-- Lista de projetos será inserida aqui -->
+                </div>
+            </div>
+
+            <!-- PÁGINA: FINANCEIRO -->
+            <div id="page-financeiro" class="page hidden">
+                <div class="page-header flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold">Financeiro</h1>
+                        <p class="text-secondary">Controle suas cobranças e recebimentos.</p>
+                    </div>
+                    <button id="add-charge-btn" class="btn btn-primary">Nova Cobrança</button>
+                </div>
+                 <div id="finance-summary" class="grid-3 gap-6 mb-6">
+                     <div class="card p-6">
+                        <p class="text-secondary">Recebido no Mês</p>
+                        <p id="fs-received-month" class="text-2xl font-bold">R$ 0,00</p>
+                    </div>
+                    <div class="card p-6">
+                        <p class="text-secondary">Total Pendente</p>
+                        <p id="fs-pending-total" class="text-2xl font-bold">R$ 0,00</p>
+                    </div>
+                    <div class="card p-6">
+                        <p class="text-secondary">Próximos Vencimentos</p>
+                        <p id="fs-next-due" class="text-lg font-bold">Nenhum</p>
+                    </div>
+                 </div>
+                 <div class="flex justify-end mb-4">
+                    <select id="sort-charges" style="max-width: 250px;">
+                        <option value="due-date-desc">Mais Recentes</option>
+                        <option value="value-desc">Maior Valor</option>
+                        <option value="value-asc">Menor Valor</option>
+                    </select>
+                </div>
+                <div class="card table-wrapper">
+                    <div id="charge-list">
+                        <!-- Tabela de cobranças aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PÁGINA: TAREFAS -->
+            <div id="page-tarefas" class="page hidden">
+                <div class="page-header flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold">Tarefas</h1>
+                        <p class="text-secondary">Organize suas atividades e pendências.</p>
+                    </div>
+                    <button id="add-task-btn" class="btn btn-primary">Nova Tarefa</button>
+                </div>
+                <div class="flex gap-4 mb-6">
+                    <select id="filter-task-project" class="flex-grow">
+                        <option value="all">Todos os Projetos</option>
+                    </select>
+                    <select id="filter-task-status">
+                        <option value="all">Todos os Status</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="em andamento">Em Andamento</option>
+                        <option value="concluída">Concluída</option>
+                    </select>
+                </div>
+                <div id="task-list" class="flex flex-col gap-4">
+                    <!-- Lista de tarefas aqui -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL GENÉRICO -->
+    <div id="modal-container">
+        <div id="modal-content">
+            <h2 id="modal-title" class="text-xl font-bold mb-6"></h2>
+            <div id="modal-body"></div>
+            <div id="modal-footer" class="flex justify-end gap-4">
+                <button id="modal-cancel-btn" class="btn btn-danger">Cancelar</button>
+                <button id="modal-save-btn" class="btn btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+
+    <script type="module">
+        /*
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !!!               CORREÇÃO PARA O ERRO DE PERMISSÃO           !!!
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            Olá! O erro "permission-denied" que você está vendo é normal e esperado.
+            Ele acontece porque seu banco de dados no Firebase está protegido por padrão.
+            Para que o dashboard funcione, você PRECISA autorizar o acesso.
+
+            É um processo simples de copiar e colar. Siga estes passos:
+
+            1. ABRA O SEU PROJETO NO FIREBASE:
+               Vá para: https://console.firebase.google.com/project/banco-de-dados-app-dasboarddev/firestore/rules
+
+            2. VÁ PARA A ABA "REGRAS" (OU "RULES"):
+               No topo da tela do Firestore, clique na aba "Regras".
+
+            3. SUBSTITUA AS REGRAS ANTIGAS:
+               Apague todo o texto que está na caixa de edição e cole o seguinte código no lugar:
+
+               --------------------------------------------------------------------
+               rules_version = '2';
+               service cloud.firestore {
+                 match /databases/{database}/documents {
+                   // Permite que cada usuário leia e escreva apenas em seus próprios documentos.
+                   match /users/{userId}/{document=**} {
+                     allow read, write: if request.auth != null && request.auth.uid == userId;
+                   }
+                 }
+               }
+               --------------------------------------------------------------------
+
+            4. PUBLIQUE AS MUDANÇAS:
+               Clique no botão azul "Publicar" (ou "Publish").
+
+            Após fazer isso, recarregue a página do dashboard. O erro desaparecerá e
+            tudo funcionará perfeitamente. Esta regra garante que os dados de um
+            usuário sejam privados e só possam ser acessados por ele mesmo.
+        */
+
+        // Import Firebase services
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC7qfKEmAVNbr50il5RTa921Ya-35-vpvY",
+            authDomain: "banco-de-dados-app-dasboarddev.firebaseapp.com",
+            projectId: "banco-de-dados-app-dasboarddev",
+            storageBucket: "banco-de-dados-app-dasboarddev.appspot.com",
+            messagingSenderId: "237060475951",
+            appId: "1:237060475951:web:cf7e885e8537f05aac8ada"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const firestoreDb = getFirestore(app);
+        let userId;
+        let unsubscribeListeners = [];
+
+        // --- ELEMENTOS DO DOM ---
+        const loginScreen = document.getElementById('login-screen');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const appWrapper = document.getElementById('app-wrapper');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const pages = document.querySelectorAll('.page');
+        const modalContainer = document.getElementById('modal-container');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalFooter = document.getElementById('modal-footer');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const toastContainer = document.getElementById('toast-container');
+        const globalSearchInput = document.getElementById('global-search-input');
+        const globalSearchResults = document.getElementById('global-search-results');
+        const globalSearchWrapper = document.getElementById('global-search-wrapper');
+        const notificationWrapper = document.getElementById('notification-wrapper');
+        const notificationBell = document.getElementById('notification-bell');
+        const notificationCount = document.getElementById('notification-count');
+        const notificationPanel = document.getElementById('notification-panel');
+
+        // --- LOCAL DATA CACHE ---
+        let localDb = {
+            clients: [],
+            projects: [],
+            charges: [],
+            tasks: []
+        };
+
+        // --- FUNÇÕES AUXILIARES ---
+        const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const formatCurrency = (value) => `R$ ${parseFloat(value || 0).toFixed(2).replace('.', ',')}`;
+        const formatDate = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', {timeZone: 'UTC'}) : 'N/A';
+        const formatDateInput = (dateString) => dateString ? new Date(dateString).toISOString().split('T')[0] : '';
+        
+        const showToast = (message, type = 'success') => {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        };
+
+        const renderCurrentPage = () => {
+            const currentHash = window.location.hash || '#dashboard';
+            switch(currentHash) {
+                case '#dashboard': renderDashboard(); break;
+                case '#clientes': renderClients(); break;
+                case '#projetos': renderAllProjects(); break;
+                case '#financeiro': renderFinance(); break;
+                case '#tarefas': renderTasks(); break;
+            }
+            renderNotifications();
+        }
+
+        // --- LÓGICA DE NAVEGAÇÃO ---
+        const navigateTo = (hash) => {
+            // Limpa a busca global ao navegar
+            globalSearchInput.value = '';
+            globalSearchResults.classList.add('hidden');
+            globalSearchResults.innerHTML = '';
+
+            window.location.hash = hash;
+            const pageId = `page-${hash.replace('#', '')}`;
+            
+            pages.forEach(p => {
+                p.classList.add('hidden');
+                p.classList.remove('page-fade-in');
+            });
+            const targetPage = document.getElementById(pageId);
+            if(targetPage){
+                targetPage.classList.remove('hidden');
+                targetPage.classList.add('page-fade-in');
+            }
+
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href') === hash);
+            });
+            
+            renderCurrentPage();
+        };
+
+        // --- LÓGICA DO MODAL ---
+        let onSaveCallback = null;
+        const openModal = (title, formHtml, callback, showSaveButton = true) => {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = formHtml;
+            onSaveCallback = callback;
+            modalSaveBtn.style.display = showSaveButton ? 'inline-block' : 'none';
+            modalCancelBtn.textContent = 'Cancelar';
+            modalContainer.classList.add('show');
+        };
+
+        const closeModal = () => {
+            modalContainer.classList.remove('show');
+            modalTitle.innerHTML = '';
+            modalBody.innerHTML = '';
+            onSaveCallback = null;
+        };
+        
+        const showConfirmationModal = (message, onConfirm) => {
+            const html = `<p>${message}</p>`;
+            openModal('Confirmação', html, () => {
+                onConfirm();
+                closeModal();
+            });
+            modalSaveBtn.textContent = 'Confirmar';
+            modalCancelBtn.textContent = 'Cancelar';
+        };
+        
+        modalSaveBtn.addEventListener('click', () => {
+            if (onSaveCallback) {
+                onSaveCallback();
+            }
+        });
+        modalCancelBtn.addEventListener('click', closeModal);
+
+        // --- MÓDULO DE NOTIFICAÇÕES ---
+        const renderNotifications = () => {
+            const notifications = [];
+            const now = new Date();
+            now.setHours(0, 0, 0, 0); // Normalize to the start of the day
+            const sevenDaysFromNow = new Date(now);
+            sevenDaysFromNow.setDate(now.getDate() + 7);
+
+            // Check for due charges
+            localDb.charges.forEach(charge => {
+                if (charge.status === 'pendente' && charge.dueDate) {
+                    const dueDate = new Date(charge.dueDate);
+                    if (dueDate <= sevenDaysFromNow) {
+                        notifications.push({ type: 'charge', item: charge, date: dueDate });
+                    }
+                }
+            });
+
+            // Check for due projects
+            localDb.projects.forEach(project => {
+                if (project.status === 'em andamento' && project.endDate) {
+                    const endDate = new Date(project.endDate);
+                     if (endDate <= sevenDaysFromNow) {
+                        notifications.push({ type: 'project', item: project, date: endDate });
+                    }
+                }
+            });
+
+            // Sort notifications by date
+            notifications.sort((a, b) => a.date - b.date);
+
+            // Update UI
+            if (notifications.length > 0) {
+                notificationCount.textContent = notifications.length;
+                notificationCount.classList.remove('hidden');
+            } else {
+                notificationCount.classList.add('hidden');
+            }
+
+            notificationPanel.innerHTML = '';
+            if (notifications.length === 0) {
+                notificationPanel.innerHTML = `<div class="notification-item text-secondary text-center">Nenhum lembrete.</div>`;
+            } else {
+                notifications.forEach(notif => {
+                    const diffTime = notif.date.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    let dueDateText = '';
+                    let dueDateClass = '';
+
+                    if (diffDays < 0) {
+                        dueDateText = `Atrasado ${Math.abs(diffDays)} dia(s)`;
+                        dueDateClass = 'overdue';
+                    } else if (diffDays === 0) {
+                        dueDateText = 'Vence hoje';
+                        dueDateClass = 'overdue';
+                    } else {
+                        dueDateText = `Vence em ${diffDays} dia(s)`;
+                        dueDateClass = 'soon';
+                    }
+                    
+                    const item = document.createElement('div');
+                    item.className = 'notification-item';
+                    if (notif.type === 'charge') {
+                        item.innerHTML = `
+                            <p><strong>Cobrança:</strong> ${notif.item.description}</p>
+                            <p class="due-date ${dueDateClass}">${dueDateText}</p>
+                        `;
+                    } else {
+                        item.innerHTML = `
+                            <p><strong>Projeto:</strong> ${notif.item.name}</p>
+                            <p class="due-date ${dueDateClass}">Entrega ${dueDateText}</p>
+                        `;
+                    }
+                    notificationPanel.appendChild(item);
+                });
+            }
+        };
+
+        // --- MÓDULO DE BUSCA GLOBAL ---
+        const renderGlobalSearchResults = () => {
+            const term = globalSearchInput.value.toLowerCase();
+            globalSearchResults.innerHTML = '';
+
+            if (term.length < 2) {
+                globalSearchResults.classList.add('hidden');
+                return;
+            }
+
+            const results = [];
+
+            // Search clients
+            localDb.clients.filter(c => c.name.toLowerCase().includes(term)).forEach(c => {
+                results.push({ type: 'client', text: c.name, id: c.id, href: '#clientes' });
+            });
+
+            // Search projects
+            localDb.projects.filter(p => p.name.toLowerCase().includes(term)).forEach(p => {
+                results.push({ type: 'project', text: p.name, id: p.id, href: '#projetos' });
+            });
+
+            // Search tasks
+            localDb.tasks.filter(t => t.description.toLowerCase().includes(term)).forEach(t => {
+                results.push({ type: 'task', text: t.description, id: t.id, href: '#tarefas' });
+            });
+
+            if (results.length > 0) {
+                globalSearchResults.classList.remove('hidden');
+                results.forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.dataset.href = r.href;
+                    item.innerHTML = `
+                        <span>${r.text}</span>
+                        <span class="type-badge ${r.type}">${r.type}</span>
+                    `;
+                    globalSearchResults.appendChild(item);
+                });
+            } else {
+                globalSearchResults.classList.add('hidden');
+            }
+        };
+
+        // --- MÓDULO DE CLIENTES ---
+        const getClientFormHtml = (client = {}) => `
+            <div class="flex flex-col gap-4">
+                <input type="hidden" id="clientId" value="${client.id || ''}">
+                <div class="form-group">
+                    <label for="clientName" class="text-sm text-secondary">Nome do Cliente*</label>
+                    <input type="text" id="clientName" placeholder="Nome completo" value="${client.name || ''}" required>
+                </div>
+                <div class="form-group">
+                    <label for="clientEmail" class="text-sm text-secondary">E-mail</label>
+                    <input type="email" id="clientEmail" placeholder="contato@email.com" value="${client.email || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="clientPhone" class="text-sm text-secondary">Telefone</label>
+                    <input type="tel" id="clientPhone" placeholder="(00) 99999-9999" value="${client.phone || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="clientCompany" class="text-sm text-secondary">Empresa (Opcional)</label>
+                    <input type="text" id="clientCompany" placeholder="Nome da Empresa" value="${client.company || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="clientStartDate" class="text-sm text-secondary">Data de Início do Contrato</label>
+                    <input type="date" id="clientStartDate" value="${formatDateInput(client.startDate)}">
+                </div>
+                <div class="form-group">
+                    <label for="clientStatus" class="text-sm text-secondary">Status</label>
+                    <select id="clientStatus">
+                        <option value="ativo" ${client.status === 'ativo' ? 'selected' : ''}>Ativo</option>
+                        <option value="pausado" ${client.status === 'pausado' ? 'selected' : ''}>Pausado</option>
+                        <option value="cancelado" ${client.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="clientObs" class="text-sm text-secondary">Observações</label>
+                    <textarea id="clientObs" placeholder="Qualquer observação relevante...">${client.obs || ''}</textarea>
+                </div>
+            </div>
+        `;
+
+        const saveClient = async () => {
+            const id = document.getElementById('clientId').value;
+            const clientData = {
+                name: document.getElementById('clientName').value,
+                email: document.getElementById('clientEmail').value,
+                phone: document.getElementById('clientPhone').value,
+                company: document.getElementById('clientCompany').value,
+                obs: document.getElementById('clientObs').value,
+                startDate: document.getElementById('clientStartDate').value,
+                status: document.getElementById('clientStatus').value,
+            };
+
+            if (!clientData.name) {
+                showToast('O nome do cliente é obrigatório.', 'error');
+                return;
+            }
+
+            try {
+                if (id) { // Editando
+                    const clientRef = doc(firestoreDb, 'users', userId, 'clients', id);
+                    await updateDoc(clientRef, clientData);
+                    showToast('Cliente atualizado com sucesso!');
+                } else { // Criando
+                    const clientsRef = collection(firestoreDb, 'users', userId, 'clients');
+                    await addDoc(clientsRef, clientData);
+                    showToast('Cliente criado com sucesso!');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving client: ", error);
+                showToast('Erro ao salvar cliente.', 'error');
+            }
+        };
+
+        const deleteClient = (id) => {
+            showConfirmationModal('Tem certeza que deseja excluir este cliente? Todos os projetos, cobranças e tarefas associados também serão removidos.', async () => {
+                try {
+                    const batch = writeBatch(firestoreDb);
+
+                    // Find and delete associated projects
+                    const projectsQuery = query(collection(firestoreDb, `users/${userId}/projects`), where("clientId", "==", id));
+                    const projectSnapshot = await getDocs(projectsQuery);
+                    const projectIds = projectSnapshot.docs.map(d => d.id);
+                    
+                    if (projectIds.length > 0) {
+                        // Find and delete tasks associated with these projects
+                        const tasksQuery = query(collection(firestoreDb, `users/${userId}/tasks`), where("projectId", "in", projectIds));
+                        const tasksSnapshot = await getDocs(tasksQuery);
+                        tasksSnapshot.forEach(doc => batch.delete(doc.ref));
+                    }
+                    projectSnapshot.forEach(doc => batch.delete(doc.ref));
+                    
+                    // Find and delete associated charges
+                    const chargesQuery = query(collection(firestoreDb, `users/${userId}/charges`), where("clientId", "==", id));
+                    const chargesSnapshot = await getDocs(chargesQuery);
+                    chargesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+                    // Delete the client itself
+                    const clientRef = doc(firestoreDb, `users/${userId}/clients`, id);
+                    batch.delete(clientRef);
+
+                    await batch.commit();
+                    showToast('Cliente e dados associados excluídos.', 'success');
+                } catch (error) {
+                    console.error("Error deleting client and associated data: ", error);
+                    showToast('Erro ao excluir cliente.', 'error');
+                }
+            });
+        };
+
+        const renderClients = () => {
+            const clientList = document.getElementById('client-list');
+            const searchTerm = document.getElementById('search-client').value.toLowerCase();
+            const statusFilter = document.getElementById('filter-client-status').value;
+            const sortOrder = document.getElementById('sort-clients').value;
+            
+            clientList.innerHTML = '';
+            
+            let filteredClients = localDb.clients.filter(client => {
+                const matchesSearch = client.name.toLowerCase().includes(searchTerm);
+                const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
+                return matchesSearch && matchesStatus;
+            });
+            
+            // Apply sorting
+            if (sortOrder === 'name-asc') {
+                filteredClients.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortOrder === 'date-desc') {
+                filteredClients.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            }
+
+            if(filteredClients.length === 0) {
+                clientList.innerHTML = `<p class="text-secondary col-span-full text-center">Nenhum cliente encontrado.</p>`;
+                return;
+            }
+
+            filteredClients.forEach((client, index) => {
+                const statusColors = {
+                    ativo: 'var(--status-active)',
+                    pausado: 'var(--status-paused)',
+                    cancelado: 'var(--status-cancelled)'
+                };
+                const card = document.createElement('div');
+                card.className = 'card p-4 flex flex-col gap-4 animated-card';
+                card.style.animationDelay = `${index * 50}ms`;
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-lg font-semibold">${client.name}</h3>
+                            <span class="status-badge" style="background-color: ${statusColors[client.status]}; color: #121212;">${client.status}</span>
+                        </div>
+                        <p class="text-sm text-secondary">${client.email || 'Sem e-mail'}</p>
+                    </div>
+                    <div class="text-sm text-secondary mt-2">
+                        Início do Contrato: ${formatDate(client.startDate)}
+                    </div>
+                    <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-700">
+                        <button class="btn-edit-client btn py-1 px-3 text-sm" data-id="${client.id}">Editar</button>
+                        <button class="btn-delete-client btn-danger py-1 px-3 text-sm" data-id="${client.id}">Excluir</button>
+                    </div>
+                `;
+                clientList.appendChild(card);
+            });
+        };
+        
+        // --- MÓDULO DE PROJETOS ---
+        const getProjectFormHtml = (project = {}) => {
+            let clientOptions = localDb.clients.map(c => `<option value="${c.id}" ${project.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+            if (localDb.clients.length === 0) clientOptions = `<option value="" disabled>Cadastre um cliente primeiro</option>`;
+
+            return `
+            <div class="flex flex-col gap-4">
+                <input type="hidden" id="projectId" value="${project.id || ''}">
+                <div class="form-group">
+                    <label for="projectClientId" class="text-sm text-secondary">Cliente*</label>
+                    <select id="projectClientId" required ${localDb.clients.length === 0 ? 'disabled' : ''}>
+                        <option value="">Selecione um Cliente</option>
+                        ${clientOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="projectName" class="text-sm text-secondary">Nome do Projeto*</label>
+                    <input type="text" id="projectName" placeholder="Ex: Website Institucional" value="${project.name || ''}" required>
+                </div>
+                <div class="form-row">
+                    <div class="w-full form-group">
+                        <label for="projectStartDate" class="text-sm text-secondary">Data de Início</label>
+                        <input type="date" id="projectStartDate" value="${formatDateInput(project.startDate)}">
+                    </div>
+                    <div class="w-full form-group">
+                        <label for="projectEndDate" class="text-sm text-secondary">Data de Entrega</label>
+                        <input type="date" id="projectEndDate" value="${formatDateInput(project.endDate)}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="w-full form-group">
+                        <label for="projectValue" class="text-sm text-secondary">Valor Total</label>
+                        <input type="number" step="0.01" id="projectValue" placeholder="0.00" value="${project.value || ''}">
+                    </div>
+                    <div class="w-full form-group">
+                        <label for="projectBillingType" class="text-sm text-secondary">Tipo de Cobrança</label>
+                        <select id="projectBillingType">
+                            <option value="única" ${project.billingType === 'única' ? 'selected' : ''}>Única</option>
+                            <option value="recorrente" ${project.billingType === 'recorrente' ? 'selected' : ''}>Recorrente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="projectStatus" class="text-sm text-secondary">Status do Projeto</label>
+                    <select id="projectStatus">
+                        <option value="em andamento" ${project.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                        <option value="entregue" ${project.status === 'entregue' ? 'selected' : ''}>Entregue</option>
+                        <option value="manutenção" ${project.status === 'manutenção' ? 'selected' : ''}>Manutenção</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="projectDesc" class="text-sm text-secondary">Descrição</label>
+                    <textarea id="projectDesc" placeholder="Detalhes do projeto...">${project.description || ''}</textarea>
+                </div>
+            </div>
+            `;
+        };
+
+        const saveProject = async () => {
+            const id = document.getElementById('projectId').value;
+            const projectData = {
+                clientId: document.getElementById('projectClientId').value,
+                name: document.getElementById('projectName').value,
+                description: document.getElementById('projectDesc').value,
+                startDate: document.getElementById('projectStartDate').value,
+                endDate: document.getElementById('projectEndDate').value,
+                value: document.getElementById('projectValue').value,
+                billingType: document.getElementById('projectBillingType').value,
+                status: document.getElementById('projectStatus').value,
+            };
+
+            if (!projectData.clientId || !projectData.name) {
+                showToast('Cliente e nome do projeto são obrigatórios.', 'error');
+                return;
+            }
+            try {
+                if (id) {
+                    const projectRef = doc(firestoreDb, `users/${userId}/projects`, id);
+                    await updateDoc(projectRef, projectData);
+                    showToast('Projeto atualizado com sucesso!');
+                } else {
+                    const projectsRef = collection(firestoreDb, `users/${userId}/projects`);
+                    await addDoc(projectsRef, projectData);
+                    showToast('Projeto criado com sucesso!');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving project: ", error);
+                showToast('Erro ao salvar projeto.', 'error');
+            }
+        };
+        
+        const deleteProject = (id) => {
+            showConfirmationModal('Tem certeza que deseja excluir este projeto?', async () => {
+                try {
+                    await deleteDoc(doc(firestoreDb, `users/${userId}/projects`, id));
+                    showToast('Projeto excluído.');
+                } catch (error) {
+                    console.error("Error deleting project: ", error);
+                    showToast('Erro ao excluir projeto.', 'error');
+                }
+            });
+        };
+
+        const renderAllProjects = () => {
+            const projectList = document.getElementById('project-list');
+            const sortOrder = document.getElementById('sort-projects').value;
+            projectList.innerHTML = '';
+            
+            let sortedProjects = [...localDb.projects];
+
+            // Apply sorting
+            switch(sortOrder) {
+                case 'name-asc':
+                    sortedProjects.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+                case 'end-date-asc':
+                    sortedProjects.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+                    break;
+                case 'value-desc':
+                     sortedProjects.sort((a, b) => (b.value || 0) - (a.value || 0));
+                    break;
+            }
+
+            if (sortedProjects.length === 0) {
+                projectList.innerHTML = `<div class="card p-6 text-center text-secondary">Nenhum projeto cadastrado.</div>`;
+                return;
+            }
+
+            sortedProjects.forEach((project, index) => {
+                const client = localDb.clients.find(c => c.id === project.clientId);
+                const card = document.createElement('div');
+                card.className = 'card p-4 flex justify-between items-center flex-wrap gap-4 animated-card';
+                card.style.animationDelay = `${index * 50}ms`;
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-semibold">${project.name}</h3>
+                        <p class="text-sm text-secondary">Cliente: ${client ? client.name : 'N/A'}</p>
+                        <p class="text-sm text-secondary">Status: <span class="font-semibold capitalize">${project.status}</span></p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-bold text-lg text-neon-green">${formatCurrency(project.value)}</span>
+                        <div class="flex gap-2">
+                           <button class="btn-edit-project btn py-1 px-3 text-sm" data-id="${project.id}">Editar</button>
+                           <button class="btn-delete-project btn-danger py-1 px-3 text-sm" data-id="${project.id}">Excluir</button>
+                        </div>
+                    </div>
+                `;
+                projectList.appendChild(card);
+            });
+        };
+
+        // --- MÓDULO FINANCEIRO ---
+        const getChargeFormHtml = (charge = {}) => {
+            let clientOptions = localDb.clients.map(c => `<option value="${c.id}" ${charge.clientId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+            if (localDb.clients.length === 0) clientOptions = `<option value="" disabled>Cadastre um cliente</option>`;
+            
+            let projectOptions = localDb.projects
+                .filter(p => charge.clientId ? p.clientId === charge.clientId : true)
+                .map(p => `<option value="${p.id}" ${charge.projectId === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+
+            return `
+            <div class="flex flex-col gap-4">
+                <input type="hidden" id="chargeId" value="${charge.id || ''}">
+                <div class="form-group">
+                     <label for="chargeDesc" class="text-sm text-secondary">Descrição da Cobrança*</label>
+                    <input type="text" id="chargeDesc" placeholder="Ex: Parcela 1/3 do Projeto X" value="${charge.description || ''}" required>
+                </div>
+                <div class="form-row">
+                    <div class="w-full form-group">
+                        <label class="text-sm text-secondary">Valor*</label>
+                        <input type="number" step="0.01" id="chargeValue" placeholder="0.00" value="${charge.value || ''}" required>
+                    </div>
+                    <div class="w-full form-group">
+                        <label class="text-sm text-secondary">Vencimento*</label>
+                        <input type="date" id="chargeDueDate" value="${formatDateInput(charge.dueDate) || ''}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="chargeClientId" class="text-sm text-secondary">Cliente*</label>
+                    <select id="chargeClientId" required>
+                        <option value="">Selecione um Cliente</option>
+                        ${clientOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chargeProjectId" class="text-sm text-secondary">Projeto (Opcional)</label>
+                    <select id="chargeProjectId">
+                        <option value="">Selecione um Projeto</option>
+                        ${projectOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="chargeStatus" class="text-sm text-secondary">Status</label>
+                    <select id="chargeStatus">
+                        <option value="pendente" ${charge.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                        <option value="pago" ${charge.status === 'pago' ? 'selected' : ''}>Pago</option>
+                    </select>
+                </div>
+            </div>
+            `;
+        };
+
+        const saveCharge = async () => {
+            const id = document.getElementById('chargeId').value;
+            const chargeData = {
+                description: document.getElementById('chargeDesc').value,
+                value: parseFloat(document.getElementById('chargeValue').value),
+                dueDate: document.getElementById('chargeDueDate').value,
+                clientId: document.getElementById('chargeClientId').value,
+                projectId: document.getElementById('chargeProjectId').value,
+                status: document.getElementById('chargeStatus').value,
+            };
+
+            if (!chargeData.description || !chargeData.value || !chargeData.dueDate || !chargeData.clientId) {
+                showToast('Descrição, valor, vencimento e cliente são obrigatórios.', 'error');
+                return;
+            }
+            try {
+                if (id) {
+                    const chargeRef = doc(firestoreDb, `users/${userId}/charges`, id);
+                    await updateDoc(chargeRef, chargeData);
+                    showToast('Cobrança atualizada com sucesso!');
+                } else {
+                    const chargesRef = collection(firestoreDb, `users/${userId}/charges`);
+                    await addDoc(chargesRef, chargeData);
+                    showToast('Cobrança criada com sucesso!');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving charge: ", error);
+                showToast('Erro ao salvar cobrança.', 'error');
+            }
+        };
+
+        const deleteCharge = (id) => {
+            showConfirmationModal('Tem certeza que deseja excluir esta cobrança?', async () => {
+                try {
+                    await deleteDoc(doc(firestoreDb, `users/${userId}/charges`, id));
+                    showToast('Cobrança excluída.');
+                } catch (error) {
+                    console.error("Error deleting charge: ", error);
+                    showToast('Erro ao excluir cobrança.', 'error');
+                }
+            });
+        };
+
+        const toggleChargeStatus = async (id) => {
+            const charge = localDb.charges.find(ch => ch.id === id);
+            if (charge) {
+                const newStatus = charge.status === 'pago' ? 'pendente' : 'pago';
+                try {
+                    const chargeRef = doc(firestoreDb, `users/${userId}/charges`, id);
+                    await updateDoc(chargeRef, { status: newStatus });
+                    showToast(`Status da cobrança alterado para ${newStatus}.`);
+                } catch (error) {
+                    console.error("Error updating charge status: ", error);
+                    showToast('Erro ao alterar status.', 'error');
+                }
+            }
+        };
+
+        const renderFinance = () => {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            const receivedThisMonth = localDb.charges
+                .filter(c => c.status === 'pago' && new Date(c.dueDate).getMonth() === currentMonth && new Date(c.dueDate).getFullYear() === currentYear)
+                .reduce((sum, c) => sum + c.value, 0);
+            
+            const pendingTotal = localDb.charges
+                .filter(c => c.status === 'pendente')
+                .reduce((sum, c) => sum + c.value, 0);
+
+            const nextDueCharge = localDb.charges
+                .filter(c => c.status === 'pendente' && new Date(c.dueDate) >= now)
+                .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+
+            document.getElementById('fs-received-month').textContent = formatCurrency(receivedThisMonth);
+            document.getElementById('fs-pending-total').textContent = formatCurrency(pendingTotal);
+            document.getElementById('fs-next-due').textContent = nextDueCharge ? `${formatCurrency(nextDueCharge.value)} em ${formatDate(nextDueCharge.dueDate)}` : 'Nenhum';
+
+            const chargeListContainer = document.getElementById('charge-list');
+            const sortOrder = document.getElementById('sort-charges').value;
+            
+            let sortedCharges = [...localDb.charges];
+
+            // Apply sorting
+            switch(sortOrder) {
+                case 'due-date-desc':
+                    sortedCharges.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
+                    break;
+                case 'value-desc':
+                    sortedCharges.sort((a, b) => (b.value || 0) - (a.value || 0));
+                    break;
+                case 'value-asc':
+                    sortedCharges.sort((a, b) => (a.value || 0) - (b.value || 0));
+                    break;
+            }
+
+            chargeListContainer.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Cliente</th>
+                            <th>Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="charge-table-body"></tbody>
+                </table>
+            `;
+            const tableBody = document.getElementById('charge-table-body');
+            if (sortedCharges.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-secondary p-6">Nenhuma cobrança registrada.</td></tr>`;
+                return;
+            }
+
+            sortedCharges.forEach(charge => {
+                const client = localDb.clients.find(c => c.id === charge.clientId);
+                const statusColors = { pago: 'var(--status-paid)', pendente: 'var(--status-pending)' };
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${charge.description}</td>
+                    <td>${client ? client.name : 'N/A'}</td>
+                    <td>${formatDate(charge.dueDate)}</td>
+                    <td>${formatCurrency(charge.value)}</td>
+                    <td><span class="status-badge" style="background-color: ${statusColors[charge.status]}; color: #121212; cursor: pointer;" data-id="${charge.id}" title="Clique para alterar status">${charge.status}</span></td>
+                    <td class="flex gap-2">
+                        <button class="btn-edit-charge btn py-1 px-3 text-sm" data-id="${charge.id}">Editar</button>
+                        <button class="btn-delete-charge btn-danger py-1 px-3 text-sm" data-id="${charge.id}">Excluir</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        };
+        
+        // --- MÓDULO DE TAREFAS ---
+        const getTaskFormHtml = (task = {}) => {
+            let projectOptions = localDb.projects.map(p => {
+                const client = localDb.clients.find(c => c.id === p.clientId);
+                return `<option value="${p.id}" ${task.projectId === p.id ? 'selected' : ''}>${p.name} (${client?.name || 'N/A'})</option>`
+            }).join('');
+            if (localDb.projects.length === 0) projectOptions = `<option value="" disabled>Cadastre um projeto primeiro</option>`;
+
+            return `
+            <div class="flex flex-col gap-4">
+                <input type="hidden" id="taskId" value="${task.id || ''}">
+                <div class="form-group">
+                    <label for="taskDesc" class="text-sm text-secondary">Descrição da Tarefa*</label>
+                    <textarea id="taskDesc" placeholder="Ex: Configurar o servidor de e-mails" required>${task.description || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="taskProjectId" class="text-sm text-secondary">Projeto*</label>
+                    <select id="taskProjectId" required ${localDb.projects.length === 0 ? 'disabled' : ''}>
+                        <option value="">Selecione um Projeto</option>
+                        ${projectOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="taskStatus" class="text-sm text-secondary">Status</label>
+                    <select id="taskStatus">
+                        <option value="pendente" ${task.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                        <option value="em andamento" ${task.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                        <option value="concluída" ${task.status === 'concluída' ? 'selected' : ''}>Concluída</option>
+                    </select>
+                </div>
+            </div>
+            `;
+        };
+        
+        const saveTask = async () => {
+            const id = document.getElementById('taskId').value;
+            const taskData = {
+                description: document.getElementById('taskDesc').value,
+                projectId: document.getElementById('taskProjectId').value,
+                status: document.getElementById('taskStatus').value,
+            };
+
+            if (!taskData.description || !taskData.projectId) {
+                showToast('Descrição e projeto são obrigatórios.', 'error');
+                return;
+            }
+            
+            const project = localDb.projects.find(p => p.id === taskData.projectId);
+            taskData.clientId = project.clientId;
+
+            try {
+                if (id) {
+                    const taskRef = doc(firestoreDb, `users/${userId}/tasks`, id);
+                    await updateDoc(taskRef, taskData);
+                    showToast('Tarefa atualizada com sucesso!');
+                } else {
+                    const tasksRef = collection(firestoreDb, `users/${userId}/tasks`);
+                    await addDoc(tasksRef, taskData);
+                    showToast('Tarefa criada com sucesso!');
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error saving task: ", error);
+                showToast('Erro ao salvar tarefa.', 'error');
+            }
+        };
+
+        const deleteTask = (id) => {
+            showConfirmationModal('Tem certeza que deseja excluir esta tarefa?', async () => {
+                try {
+                    await deleteDoc(doc(firestoreDb, `users/${userId}/tasks`, id));
+                    showToast('Tarefa excluída.');
+                } catch (error) {
+                    console.error("Error deleting task: ", error);
+                    showToast('Erro ao excluir tarefa.', 'error');
+                }
+            });
+        };
+        
+        const updateTaskStatus = async (id, newStatus) => {
+            const task = localDb.tasks.find(t => t.id === id);
+            if(task) {
+                try {
+                    const taskRef = doc(firestoreDb, `users/${userId}/tasks`, id);
+                    await updateDoc(taskRef, { status: newStatus });
+                    // No toast needed, UI update is instant
+                } catch (error) {
+                    console.error("Error updating task status: ", error);
+                    showToast('Erro ao alterar status.', 'error');
+                }
+            }
+        };
+
+        const renderTasks = () => {
+            const taskList = document.getElementById('task-list');
+            const projectFilter = document.getElementById('filter-task-project');
+            const statusFilter = document.getElementById('filter-task-status').value;
+            
+            // Populate project filter
+            const currentProjectFilterValue = projectFilter.value;
+            projectFilter.innerHTML = '<option value="all">Todos os Projetos</option>';
+            localDb.projects.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = p.name;
+                projectFilter.appendChild(option);
+            });
+            projectFilter.value = currentProjectFilterValue;
+            const selectedProject = projectFilter.value;
+
+            taskList.innerHTML = '';
+            const filteredTasks = localDb.tasks.filter(task => {
+                const matchesProject = selectedProject === 'all' || task.projectId === selectedProject;
+                const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+                return matchesProject && matchesStatus;
+            });
+
+            if (filteredTasks.length === 0) {
+                taskList.innerHTML = `<div class="card p-6 text-center text-secondary">Nenhuma tarefa encontrada.</div>`;
+                return;
+            }
+            
+            filteredTasks.forEach((task, index) => {
+                const project = localDb.projects.find(p => p.id === task.projectId);
+                const client = localDb.clients.find(c => c.id === project?.clientId);
+                const card = document.createElement('div');
+                card.className = 'card p-4 flex justify-between items-center flex-wrap gap-4 animated-card';
+                card.style.animationDelay = `${index * 50}ms`;
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <p>${task.description}</p>
+                        <p class="text-sm text-secondary">Projeto: ${project?.name || 'N/A'} | Cliente: ${client?.name || 'N/A'}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <select class="task-status-select bg-dark border-secondary" data-id="${task.id}" style="border-color: var(--border-color);">
+                            <option value="pendente" ${task.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                            <option value="em andamento" ${task.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                            <option value="concluída" ${task.status === 'concluída' ? 'selected' : ''}>Concluída</option>
+                        </select>
+                        <button class="btn-delete-task btn-danger py-1 px-3 text-sm" data-id="${task.id}">Excluir</button>
+                    </div>
+                `;
+                taskList.appendChild(card);
+            });
+        };
+
+        // --- MÓDULO DASHBOARD ---
+        const renderDashboard = () => {
+            const activeClients = localDb.clients.filter(c => c.status === 'ativo').length;
+            const activeProjects = localDb.projects.filter(p => p.status === 'em andamento').length;
+            const pendingPayments = localDb.charges.filter(c => c.status === 'pendente').reduce((sum, c) => sum + parseFloat(c.value || 0), 0);
+
+            document.getElementById('db-active-clients').textContent = activeClients;
+            document.getElementById('db-active-projects').textContent = activeProjects;
+            document.getElementById('db-pending-payments').textContent = formatCurrency(pendingPayments);
+            
+            renderFinanceChart();
+        };
+        
+        const renderFinanceChart = () => {
+            const container = document.getElementById('finance-chart-container');
+            const data = [];
+            const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+            
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const month = d.getMonth();
+                const year = d.getFullYear();
+                
+                const received = localDb.charges
+                    .filter(c => c.status === 'pago' && new Date(c.dueDate).getMonth() === month && new Date(c.dueDate).getFullYear() === year)
+                    .reduce((sum, c) => sum + c.value, 0);
+
+                data.push({ month: monthNames[month], received });
+            }
+
+            const maxValue = Math.max(...data.map(d => d.received), 1); // Avoid division by zero
+            
+            const chartHtml = `
+                <svg width="100%" height="100%" viewBox="0 0 500 250">
+                    <line x1="40" y1="10" x2="40" y2="220" stroke="${'var(--border-color)'}" stroke-width="1"/>
+                    <line x1="40" y1="220" x2="480" y2="220" stroke="${'var(--border-color)'}" stroke-width="1"/>
+                    ${data.map((d, i) => {
+                        const x = 50 + i * 70;
+                        const height = (d.received / maxValue) * 200;
+                        return `
+                            <rect x="${x}" y="${220 - height}" width="30" height="${height}" fill="${'var(--neon-green)'}"></rect>
+                            <text x="${x + 15}" y="235" font-size="12" fill="${'var(--text-secondary)'}" text-anchor="middle">${d.month}</text>
+                        `;
+                    }).join('')}
+                </svg>
+            `;
+            container.innerHTML = chartHtml;
+        };
+
+        // --- SETUP LISTENERS DE DADOS (FIREBASE) ---
+        const setupRealtimeListeners = () => {
+            const collections = ['clients', 'projects', 'charges', 'tasks'];
+            collections.forEach(col => {
+                const ref = collection(firestoreDb, `users/${userId}/${col}`);
+                const unsubscribe = onSnapshot(ref, (snapshot) => {
+                    localDb[col] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderCurrentPage();
+                });
+                unsubscribeListeners.push(unsubscribe);
+            });
+        };
+        
+        const detachRealtimeListeners = () => {
+            unsubscribeListeners.forEach(unsub => unsub());
+            unsubscribeListeners = [];
+        }
+
+
+        // --- EVENT LISTENERS ---
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (!email || !password) {
+                showToast('Por favor, preencha e-mail e senha.', 'error');
+                return;
+            }
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    console.error("Sign-in failed:", error);
+                    showToast('E-mail ou senha inválidos.', 'error');
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigateTo(link.getAttribute('href'));
+            });
+        });
+
+        // Event Delegation for dynamic elements
+        document.addEventListener('click', (e) => {
+            // Add buttons
+            if (e.target.id === 'add-client-btn') openModal('Novo Cliente', getClientFormHtml(), saveClient);
+            if (e.target.id === 'add-project-btn') openModal('Novo Projeto', getProjectFormHtml(), saveProject);
+            if (e.target.id === 'add-charge-btn') openModal('Nova Cobrança', getChargeFormHtml(), saveCharge);
+            if (e.target.id === 'add-task-btn') openModal('Nova Tarefa', getTaskFormHtml(), saveTask);
+            
+            // Edit buttons
+            if (e.target.classList.contains('btn-edit-client')) {
+                const client = localDb.clients.find(c => c.id === e.target.dataset.id);
+                openModal('Editar Cliente', getClientFormHtml(client), saveClient);
+            }
+            if (e.target.classList.contains('btn-edit-project')) {
+                const project = localDb.projects.find(p => p.id === e.target.dataset.id);
+                openModal('Editar Projeto', getProjectFormHtml(project), saveProject);
+            }
+             if (e.target.classList.contains('btn-edit-charge')) {
+                const charge = localDb.charges.find(c => c.id === e.target.dataset.id);
+                openModal('Editar Cobrança', getChargeFormHtml(charge), saveCharge);
+            }
+
+            // Delete buttons
+            if (e.target.classList.contains('btn-delete-client')) deleteClient(e.target.dataset.id);
+            if (e.target.classList.contains('btn-delete-project')) deleteProject(e.target.dataset.id);
+            if (e.target.classList.contains('btn-delete-charge')) deleteCharge(e.target.dataset.id);
+            if (e.target.classList.contains('btn-delete-task')) deleteTask(e.target.dataset.id);
+            
+            // Toggle charge status
+            if (e.target.matches('#charge-table-body .status-badge')) {
+                toggleChargeStatus(e.target.dataset.id);
+            }
+
+            // Global search result click
+            if (e.target.closest('.search-result-item')) {
+                navigateTo(e.target.closest('.search-result-item').dataset.href);
+            }
+        });
+        
+        document.addEventListener('change', (e) => {
+            // Update project options when client changes in charge form
+            if (e.target.id === 'chargeClientId') {
+                const clientId = e.target.value;
+                const projectSelect = document.getElementById('chargeProjectId');
+                if(projectSelect) {
+                    projectSelect.innerHTML = '<option value="">Selecione um Projeto (Opcional)</option>';
+                    localDb.projects
+                        .filter(p => p.clientId === clientId)
+                        .forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.textContent = p.name;
+                            projectSelect.appendChild(option);
+                        });
+                }
+            }
+            
+            // Update task status from select
+            if (e.target.classList.contains('task-status-select')) {
+                updateTaskStatus(e.target.dataset.id, e.target.value);
+            }
+        });
+        
+        // Listeners for filters and sorting
+        document.getElementById('search-client').addEventListener('input', renderClients);
+        document.getElementById('filter-client-status').addEventListener('change', renderClients);
+        document.getElementById('sort-clients').addEventListener('change', renderClients);
+
+        document.getElementById('sort-projects').addEventListener('change', renderAllProjects);
+
+        document.getElementById('sort-charges').addEventListener('change', renderFinance);
+
+        document.getElementById('filter-task-project').addEventListener('change', renderTasks);
+        document.getElementById('filter-task-status').addEventListener('change', renderTasks);
+        
+        globalSearchInput.addEventListener('input', renderGlobalSearchResults);
+        
+        // Hide global search/notification results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!globalSearchWrapper.contains(e.target)) {
+                globalSearchResults.classList.add('hidden');
+            }
+            if (!notificationWrapper.contains(e.target)) {
+                notificationPanel.classList.remove('show');
+            }
+        });
+        
+        notificationBell.addEventListener('click', () => {
+            notificationPanel.classList.toggle('show');
+        });
+
+        // --- INICIALIZAÇÃO ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                loginScreen.classList.add('hidden');
+                appWrapper.classList.remove('hidden');
+                setupRealtimeListeners();
+                const initialHash = window.location.hash || '#dashboard';
+                navigateTo(initialHash);
+            } else {
+                // User is signed out.
+                detachRealtimeListeners();
+                loginScreen.classList.remove('hidden');
+                appWrapper.classList.add('hidden');
+            }
+        });
+
+    </script>
+</body>
+</html>
